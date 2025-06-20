@@ -2,9 +2,9 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: app-config
-  namespace: cloudops-demo
+  namespace: taskns
   labels:
-    app: cloudops-demo
+    app: taskns
 data:
   # Database configuration (AWS RDS)
   DB_HOST: "cloudops-demo-postgres.cluster-xxxxx.us-west-2.rds.amazonaws.com"  # Replace with your RDS endpoint

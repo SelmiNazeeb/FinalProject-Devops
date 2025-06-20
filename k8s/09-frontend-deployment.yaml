@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: frontend-deployment
-  namespace: cloudops-demo
+  namespace: taskns
   labels:
     app: frontend
     tier: frontend
@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: your-registry/cloudops-frontend:latest  # Replace with your image
+        image: 390403857216.dkr.ecr.us-east-1.amazonaws.com/frontendnew  # Replace with your image
         ports:
         - containerPort: 3000
         env:
