@@ -1,0 +1,162 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'CloudOps Demo - RDS PostgreSQL Database for EKS Application'
+
+Parameters:
+  DBInstanceIdentifier:
+    Type: String
+    Default: cloudops-demo-postgres
+    Description: Database instance identifier
+    
+  DBName:
+    Type: String
+    Default: cloudops_demo
+    Description: Database name
+    
+  DBUsername:
+    Type: String
+    Default: postgres
+    Description: Database master username
+    
+  DBPassword:
+    Type: String
+    NoEcho: true
+    MinLength: 8
+    Description: Database master password (minimum 8 characters)
+    
+  VPCId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC ID where EKS cluster is deployed
+    
+  PrivateSubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Private subnet IDs for RDS (at least 2 subnets in different AZs)
+    
+  EKSSecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: Security Group ID of the EKS worker nodes
+
+Resources:
+  # DB Subnet Group
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupName: !Sub '${DBInstanceIdentifier}-subnet-group'
+      DBSubnetGroupDescription: Subnet group for RDS database
+      SubnetIds: !Ref PrivateSubnetIds
+      Tags:
+        - Key: Name
+          Value: !Sub '${DBInstanceIdentifier}-subnet-group'
+        - Key: Project
+          Value: CloudOps-Demo
+
+  # Security Group for RDS
+  DBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub '${DBInstanceIdentifier}-sg'
+      GroupDescription: Security group for RDS PostgreSQL
+      VpcId: !Ref VPCId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref EKSSecurityGroupId
+          Description: Allow PostgreSQL access from EKS nodes
+      Tags:
+        - Key: Name
+          Value: !Sub '${DBInstanceIdentifier}-sg'
+        - Key: Project
+          Value: CloudOps-Demo
+
+  # RDS Instance
+  DBInstance:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Snapshot
+    Properties:
+      DBInstanceIdentifier: !Ref DBInstanceIdentifier
+      DBInstanceClass: db.t3.micro  # Change to db.t3.small or larger for production
+      Engine: postgres
+      EngineVersion: '15.4'
+      AllocatedStorage: 20
+      StorageType: gp2
+      StorageEncrypted: true
+      
+      DBName: !Ref DBName
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Ref DBPassword
+      
+      VPCSecurityGroups:
+        - !Ref DBSecurityGroup
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      
+      # Backup and Maintenance
+      BackupRetentionPeriod: 7
+      PreferredBackupWindow: "03:00-04:00"
+      PreferredMaintenanceWindow: "sun:04:00-sun:05:00"
+      
+      # Monitoring
+      MonitoringInterval: 60
+      MonitoringRoleArn: !GetAtt RDSEnhancedMonitoringRole.Arn
+      EnablePerformanceInsights: true
+      PerformanceInsightsRetentionPeriod: 7
+      
+      # Security
+      DeletionProtection: false  # Set to true for production
+      
+      Tags:
+        - Key: Name
+          Value: !Ref DBInstanceIdentifier
+        - Key: Project
+          Value: CloudOps-Demo
+        - Key: Environment
+          Value: Demo
+
+  # IAM Role for Enhanced Monitoring
+  RDSEnhancedMonitoringRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: ''
+            Effect: Allow
+            Principal:
+              Service: monitoring.rds.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole'
+      Path: /
+
+Outputs:
+  DBInstanceIdentifier:
+    Description: RDS Database Instance Identifier
+    Value: !Ref DBInstance
+    Export:
+      Name: !Sub '${AWS::StackName}-DBInstanceIdentifier'
+      
+  DBEndpoint:
+    Description: RDS Database Endpoint
+    Value: !GetAtt DBInstance.Endpoint.Address
+    Export:
+      Name: !Sub '${AWS::StackName}-DBEndpoint'
+      
+  DBPort:
+    Description: RDS Database Port
+    Value: !GetAtt DBInstance.Endpoint.Port
+    Export:
+      Name: !Sub '${AWS::StackName}-DBPort'
+      
+  DBName:
+    Description: Database Name
+    Value: !Ref DBName
+    Export:
+      Name: !Sub '${AWS::StackName}-DBName'
+      
+  ConfigMapUpdate:
+    Description: Update your ConfigMap with this endpoint
+    Value: !Sub |
+      kubectl patch configmap app-config -n cloudops-demo --patch '{
+        "data": {
+          "DB_HOST": "${DBInstance.Endpoint.Address}"
+        }
+      }' 
