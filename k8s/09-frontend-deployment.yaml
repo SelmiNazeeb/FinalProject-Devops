@@ -21,7 +21,7 @@ spec:
       - name: frontend
         image: 390403857216.dkr.ecr.us-east-1.amazonaws.com/frontendnew  # Replace with your image
         ports:
-        - containerPort: 3000
+        - containerPort: 80
         env:
         - name: REACT_APP_API_URL
           valueFrom:
@@ -38,7 +38,7 @@ spec:
         livenessProbe:
           httpGet:
             path: /
-            port: 3000
+            port: 80
           initialDelaySeconds: 30
           periodSeconds: 10
           timeoutSeconds: 5
@@ -46,7 +46,7 @@ spec:
         readinessProbe:
           httpGet:
             path: /
-            port: 3000
+            port: 80
           initialDelaySeconds: 5
           periodSeconds: 5
           timeoutSeconds: 3
