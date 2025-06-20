@@ -13,8 +13,8 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-CLUSTER_NAME=${CLUSTER_NAME:-"cloudops-demo"}
-REGION=${AWS_REGION:-"us-west-2"}
+CLUSTER_NAME=${CLUSTER_NAME:-"eks-new"}
+REGION=${AWS_REGION:-"us-east-1"}
 STACK_NAME="cloudops-demo-rds"
 DB_PASSWORD=${DB_PASSWORD:-""}
 
@@ -112,7 +112,7 @@ create_rds() {
     # Deploy CloudFormation stack
     aws cloudformation $OPERATION \
         --stack-name $STACK_NAME \
-        --template-body file://infrastructure/rds-setup.yaml \
+        --template-body file://../infrastructure/rds-setup.yaml \
         --region $REGION \
         --parameters \
             ParameterKey=VPCId,ParameterValue=$VPC_ID \
@@ -122,7 +122,7 @@ create_rds() {
         --capabilities CAPABILITY_IAM
     
     echo -e "${YELLOW}⏳ Waiting for stack deployment to complete...${NC}"
-    aws cloudformation wait stack-$OPERATION-complete --stack-name $STACK_NAME --region $REGION
+    aws cloudformation wait stack-${OPERATION%-stack}-complete --stack-name $STACK_NAME --region $REGION
     
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}✅ RDS stack deployed successfully${NC}"
@@ -145,7 +145,7 @@ update_configmap() {
     fi
     
     # Update the ConfigMap file
-    sed -i.bak "s/DB_HOST: \".*\"/DB_HOST: \"$DB_ENDPOINT\"/" k8s/01-configmap.yaml
+    sed -i.bak "s/DB_HOST: \".*\"/DB_HOST: \"$DB_ENDPOINT\"/" ../k8s/01-configmap.yaml
     rm -f k8s/01-configmap.yaml.bak
     
     echo -e "${GREEN}✅ ConfigMap updated with RDS endpoint: $DB_ENDPOINT${NC}"
@@ -160,25 +160,26 @@ init_database() {
     
     # Create init script
     cat > /tmp/init_rds.sql << EOF
--- Create users table
-CREATE TABLE IF NOT EXISTS users (
+-- Create tasks table
+CREATE TABLE IF NOT EXISTS tasks (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    email VARCHAR(100) UNIQUE NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Insert sample data
-INSERT INTO users (name, email) VALUES 
-    ('John Doe', 'john.doe@example.com'),
-    ('Jane Smith', 'jane.smith@example.com'),
-    ('Bob Johnson', 'bob.johnson@example.com'),
-    ('Alice Brown', 'alice.brown@example.com')
-ON CONFLICT (email) DO NOTHING;
+INSERT INTO tasks (title, description) VALUES
+    ('Plan Project Kickoff', 'Schedule meeting with team, define agenda, and prepare presentation slides.'),
+    ('Develop Frontend UI', 'Implement the main dashboard layout and task input form using Material-UI.'),
+    ('Set Up Backend API', 'Create REST endpoints for CRUD operations on tasks and connect to the database.'),
+    ('Write Unit Tests', 'Develop tests for backend API routes and frontend components.'),
+    ('Prepare Deployment Script', 'Automate deployment to AWS EKS using Terraform or Kubernetes manifests.')
+ON CONFLICT (id) DO NOTHING; -- Changed ON CONFLICT clause to use primary key 'id' to prevent errors on re-run if IDs are already present.
 
--- Create indexes
-CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at);
+-- Create index for better performance (for commonly queried columns)
+CREATE INDEX IF NOT EXISTS idx_tasks_created_at ON tasks(created_at);
+CREATE INDEX IF NOT EXISTS idx_tasks_title ON tasks(title); -- New index on title for searches/sorting
 EOF
     
     echo -e "${BLUE}📝 Database initialization script created${NC}"
