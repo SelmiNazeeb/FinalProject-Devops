@@ -251,11 +251,6 @@ Resources:
     Properties:
       GroupDescription: "EKS control plane communication"
       VpcId: !Ref VPC
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 443
-          ToPort: 443
-          SourceSecurityGroupId: !GetAtt EKSNodeSecurityGroup.GroupId
       Tags:
         - Key: Name
           Value: !Sub "${ClusterName}-cluster-sg"
@@ -267,22 +262,36 @@ Resources:
     Properties:
       GroupDescription: "EKS worker nodes SG"
       VpcId: !Ref VPC
-      SecurityGroupIngress:
-        - IpProtocol: -1
-          FromPort: -1
-          ToPort: -1
-          SourceSecurityGroupId: !GetAtt EKSClusterSecurityGroup.GroupId
-        - IpProtocol: -1
-          FromPort: -1
-          ToPort: -1
-          SourceSecurityGroupId: !GetAtt EKSNodeSecurityGroup.GroupId
-        - !If
-          - HasKeyPair
-          - IpProtocol: tcp
-            FromPort: 22
-            ToPort: 22
-            CidrIp: 0.0.0.0/0
-          - !Ref "AWS::NoValue"
+      Tags:
+        - Key: Name
+          Value: !Sub "${ClusterName}-node-sg"
+
+  EKSClusterFromNodeIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref EKSClusterSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      SourceSecurityGroupId: !Ref EKSNodeSecurityGroup
+
+  EKSNodeFromClusterIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref EKSNodeSecurityGroup
+      IpProtocol: -1
+      FromPort: -1
+      ToPort: -1
+      SourceSecurityGroupId: !Ref EKSClusterSecurityGroup
+
+  EKSNodeSelfIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref EKSNodeSecurityGroup
+      IpProtocol: -1
+      FromPort: -1
+      ToPort: -1
+      SourceSecurityGroupId: !Ref EKSNodeSecurityGroup
 
   DBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
