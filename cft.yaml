@@ -97,7 +97,7 @@ Resources:
       VpcId: !Ref VPC
       CidrBlock: !Ref PublicSubnet1CIDR
       MapPublicIpOnLaunch: true
-      AvailabilityZone: !Select [0, !GetAZs !Ref "AWS::Region"]
+      AvailabilityZone: us-east-1a
       Tags:
         - Key: Name
           Value: !Sub "${ClusterName}-public-subnet-1"
@@ -109,7 +109,7 @@ Resources:
       VpcId: !Ref VPC
       CidrBlock: !Ref PublicSubnet2CIDR
       MapPublicIpOnLaunch: true
-      AvailabilityZone: !Select [1, !GetAZs !Ref "AWS::Region"]
+      AvailabilityZone: us-east-1b
       Tags:
         - Key: Name
           Value: !Sub "${ClusterName}-public-subnet-2"
@@ -121,7 +121,7 @@ Resources:
       VpcId: !Ref VPC
       CidrBlock: !Ref PublicSubnet3CIDR
       MapPublicIpOnLaunch: true
-      AvailabilityZone: !Select [2, !GetAZs !Ref "AWS::Region"]
+      AvailabilityZone: us-east-1c
       Tags:
         - Key: Name
           Value: !Sub "${ClusterName}-public-subnet-3"
@@ -135,7 +135,7 @@ Resources:
       VpcId: !Ref VPC
       CidrBlock: !Ref PrivateSubnet1CIDR
       MapPublicIpOnLaunch: false
-      AvailabilityZone: !Select [0, !GetAZs !Ref "AWS::Region"]
+      AvailabilityZone: us-east-1a
       Tags:
         - Key: Name
           Value: !Sub "${ClusterName}-private-subnet-1"
@@ -149,7 +149,7 @@ Resources:
       VpcId: !Ref VPC
       CidrBlock: !Ref PrivateSubnet2CIDR
       MapPublicIpOnLaunch: false
-      AvailabilityZone: !Select [1, !GetAZs !Ref "AWS::Region"]
+      AvailabilityZone: us-east-1b
       Tags:
         - Key: Name
           Value: !Sub "${ClusterName}-private-subnet-2"
@@ -163,7 +163,7 @@ Resources:
       VpcId: !Ref VPC
       CidrBlock: !Ref PrivateSubnet3CIDR
       MapPublicIpOnLaunch: false
-      AvailabilityZone: !Select [2, !GetAZs !Ref "AWS::Region"]
+      AvailabilityZone: us-east-1c
       Tags:
         - Key: Name
           Value: !Sub "${ClusterName}-private-subnet-3"
