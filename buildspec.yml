@@ -8,7 +8,9 @@ env:
     BACKEND_REPO: backendnew
     FRONTEND_DIR: frontend
     BACKEND_DIR: backend
-    K8S_MANIFEST_DIR: k8s # Updated to reflect your k8s directory structure
+    K8S_MANIFEST_DIR: k8s
+    EKS_CLUSTER_NAME: eks-cluster-3Tier1
+    IAM_USER_ARN: arn:aws:iam::390403857216:user/terraform-user
 
 phases:
   install:
@@ -16,7 +18,13 @@ phases:
       nodejs: 18
     commands:
       - echo Installing utilities...
-      - yum install -y jq
+      - yum install -y jq curl unzip
+      - echo Installing kubectl...
+      - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+      - chmod +x kubectl && mv kubectl /usr/local/bin/
+      - echo Installing yq...
+      - wget https://github.com/mikefarah/yq/releases/download/v4.40.5/yq_linux_amd64 -O /usr/bin/yq
+      - chmod +x /usr/bin/yq
 
   pre_build:
     commands:
@@ -66,6 +74,38 @@ phases:
       # --- DEBUG ---
       - echo "Final list of generated Kubernetes YAML files:"
       - find k8s-out/
+
+      # --- GRANT EKS ACCESS TO IAM USER ---
+#      - echo "Updating aws-auth configmap in EKS cluster..."
+ #     - aws eks update-kubeconfig --region $REGION --name $EKS_CLUSTER_NAME
+ #     - |
+  #      kubectl get configmap aws-auth -n kube-system -o yaml | yq eval '.data.mapUsers' - > current-users.yaml
+   #   - |
+  #      echo "- userarn: ${IAM_USER_ARN}
+#  username: terraform-user
+ # groups:
+  #  - system:masters" >> new-user.yaml
+   #   - |
+    #    echo "data:" > aws-auth-patch.yaml
+     #   echo "  mapUsers: |" >> aws-auth-patch.yaml
+     #   cat current-users.yaml new-user.yaml | sed 's/^/    /' >> aws-auth-patch.yaml
+  #    - |
+   #     kubectl patch configmap aws-auth -n kube-system --patch "$(cat aws-auth-patch.yaml)"
+
+      # --- CONFIGURE AWS LOAD BALANCER CONTROLLER ---
+      - echo "Configuring AWS Load Balancer Controller..."
+      - curl -O https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/v2.5.4/docs/install/iam_policy.json
+      - aws iam create-policy --policy-name AWSLoadBalancerControllerIAMPolicy4 --policy-document file://iam_policy.json || true # Added || true to prevent build failure if policy already exists
+      - eksctl utils associate-iam-oidc-provider --region=$REGION --cluster=$EKS_CLUSTER_NAME --approve # Replaced hardcoded region/cluster with variables
+      - eksctl create iamserviceaccount --cluster=$EKS_CLUSTER_NAME --namespace=kube-system --name=aws-load-balancer-controller --role-name AmazonEKSLoadBalancerControllerRole2 --attach-policy-arn=arn:aws:iam::${ACCOUNT_ID}:policy/AWSLoadBalancerControllerIAMPolicy4 --approve --region=$REGION || true # Replaced hardcoded account/region/cluster with variables, added || true
+      - echo "Installing Helm..."
+      # Instead of snap, directly download and install helm
+      - curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
+      - chmod 700 get_helm.sh
+      - ./get_helm.sh
+      - helm repo add eks https://aws.github.io/eks-charts
+      - helm repo update eks
+      - helm install aws-load-balancer-controller eks/aws-load-balancer-controller -n kube-system --set clusterName=my-cluster  --set serviceAccount.create=false --set serviceAccount.name=aws-load-balancer-controller
 
 artifacts:
   base-directory: k8s-out
