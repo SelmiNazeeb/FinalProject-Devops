@@ -498,14 +498,14 @@ Resources:
       Tags:
         Name: !Sub ${AWS::StackName}-EKSNodeGroup
  # CloudWatch Log Group for EKS
-MyEKSLogGroup:
-  Type: AWS::Logs::LogGroup
-  Properties:
-    LogGroupName: !Sub /aws/eks/${EKSClusterName}/cluster
-    RetentionInDays: 7
-    Tags:
-      - Key: Name
-        Value: !Sub ${AWS::StackName}-EKSLogGroup
+  MyEKSLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/eks/${EKSClusterName}/cluster
+      RetentionInDays: 7
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-EKSLogGroup
 
 Outputs:
   VpcId:
