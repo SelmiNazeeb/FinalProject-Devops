@@ -214,13 +214,15 @@ Resources:
       AllocationId: !GetAtt NatEIP.AllocationId
       SubnetId: !Ref PublicSubnet1
       Tags:
-        - Key: Name; Value: !Sub "${ClusterName}-nat-gateway"
+        - Key: Name
+          Value: !Sub "${ClusterName}-nat-gateway"
   PrivateRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref VPC
       Tags:
-        - Key: Name; Value: !Sub "${ClusterName}-private-rt"
+        - Key: Name
+          Value: !Sub "${ClusterName}-private-rt"
   PrivateRoute:
     Type: AWS::EC2::Route
     Properties:
@@ -255,8 +257,10 @@ Resources:
           ToPort: 443
           SourceSecurityGroupId: !GetAtt EKSNodeSecurityGroup.GroupId
       Tags:
-        - Key: Name; Value: !Sub "${ClusterName}-cluster-sg"
-        - Key: !Sub kubernetes.io/cluster/${ClusterName}; Value: owned
+        - Key: Name
+          Value: !Sub "${ClusterName}-cluster-sg"
+        - Key: !Sub kubernetes.io/cluster/${ClusterName}
+          Value: owned
 
   EKSNodeSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -317,8 +321,10 @@ Resources:
         - !Ref PrivateSubnet2
         - !Ref PrivateSubnet3
       Tags:
-        - Key: Name; Value: !Sub "${DBInstanceIdentifier}-subnet-group"
-        - Key: Project; Value: CloudOps-Demo
+        - Key: Name
+          Value: !Sub "${DBInstanceIdentifier}-subnet-group"
+        - Key: Project
+          Value: CloudOps-Demo
 
   # RDS Instance
   DBInstance:
@@ -346,9 +352,12 @@ Resources:
       PerformanceInsightsRetentionPeriod: 7
       DeletionProtection: false
       Tags:
-        - Key: Name; Value: !Ref DBInstanceIdentifier
-        - Key: Project; Value: CloudOps-Demo
-        - Key: Environment; Value: Demo
+        - Key: Name
+          Value: !Ref DBInstanceIdentifier
+        - Key: Project
+          Value: CloudOps-Demo
+        - Key: Environment
+          Value: Demo
 
   ### EKS IAM Roles ###
   EKSClusterRole:
@@ -423,8 +432,10 @@ Resources:
         app: three-tier
         environment: dev
       Tags:
-        - Key: Name; Value: !Sub "${ClusterName}-nodegroup"
-        - Key: eks.amazonaws.com/cluster-name; Value: !Ref ClusterName
+        - Key: Name
+          Value: !Sub "${ClusterName}-nodegroup"
+        - Key: eks.amazonaws.com/cluster-name
+          Value: !Ref ClusterName
 
 Outputs:
   ClusterEndpoint:
