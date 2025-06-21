@@ -2,91 +2,78 @@ version: 0.2
 
 env:
   variables:
-    AWS_DEFAULT_REGION: us-west-2
-    AWS_ACCOUNT_ID: "123456789012"  # Replace with your AWS Account ID
-    IMAGE_REPO_NAME_FRONTEND: cloudops-frontend
-    IMAGE_REPO_NAME_BACKEND: cloudops-backend
-    IMAGE_TAG: latest
-    EKS_CLUSTER_NAME: cloudops-demo
-    EKS_KUBECTL_ROLE_ARN: "arn:aws:iam::123456789012:role/CodeBuildKubectlRole"  # Replace with your role ARN
-  parameter-store:
-    DB_PASSWORD: /cloudops-demo/db-password
+    ACCOUNT_ID: 390403857216
+    REGION: us-east-1
+    FRONTEND_REPO: frontendnew
+    BACKEND_REPO: backendnew
+    FRONTEND_DIR: frontend
+    BACKEND_DIR: backend
+    K8S_MANIFEST_DIR: k8s # Updated to reflect your k8s directory structure
 
 phases:
   install:
     runtime-versions:
       nodejs: 18
-      docker: 20
     commands:
-      - echo Logging in to Amazon ECR...
-      - aws --version
-      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
-      - REPOSITORY_URI_FRONTEND=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME_FRONTEND
-      - REPOSITORY_URI_BACKEND=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME_BACKEND
-      - echo Installing kubectl...
-      - curl -o kubectl https://amazon-eks.s3.us-west-2.amazonaws.com/1.21.2/2021-07-05/bin/linux/amd64/kubectl
-      - chmod +x ./kubectl
-      - mv ./kubectl /usr/local/bin/kubectl
-      - kubectl version --short --client
-      - echo Installing Helm...
-      - curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
-      - helm version --short
+      - echo Installing utilities...
+      - yum install -y jq
 
   pre_build:
     commands:
-      - echo Updating kubeconfig...
-      - aws eks update-kubeconfig --region $AWS_DEFAULT_REGION --name $EKS_CLUSTER_NAME --role-arn $EKS_KUBECTL_ROLE_ARN
-      - echo Running tests...
-      - cd frontend && npm ci && npm test -- --coverage --watchAll=false
-      - cd ../backend && npm ci && npm test
-      - cd ..
-      - echo Build started on `date`
-      - echo Building the Docker images...
-      - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
-      - IMAGE_TAG=${COMMIT_HASH:=latest}
+      - echo Setting dynamic image tag...
+      - export IMAGE_TAG=v1.${CODEBUILD_BUILD_NUMBER}
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region $REGION | docker login --username AWS --password-stdin ${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com
+      - echo Installing frontend and backend dependencies...
+      - cd $FRONTEND_DIR && npm install && cd -
+      - cd $BACKEND_DIR && npm install && cd -
 
   build:
     commands:
-      - echo Build started on `date`
-      - echo Building the frontend Docker image...
-      - cd frontend
-      - docker build -t $REPOSITORY_URI_FRONTEND:latest .
-      - docker tag $REPOSITORY_URI_FRONTEND:latest $REPOSITORY_URI_FRONTEND:$IMAGE_TAG
-      - cd ../backend
-      - echo Building the backend Docker image...
-      - docker build -t $REPOSITORY_URI_BACKEND:latest .
-      - docker tag $REPOSITORY_URI_BACKEND:latest $REPOSITORY_URI_BACKEND:$IMAGE_TAG
-      - cd ..
+      - echo Building Docker images...
+      - docker build -t $FRONTEND_REPO:$IMAGE_TAG $FRONTEND_DIR
+      - docker tag $FRONTEND_REPO:$IMAGE_TAG ${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/$FRONTEND_REPO:$IMAGE_TAG
+      - docker build -t $BACKEND_REPO:$IMAGE_TAG $BACKEND_DIR
+      - docker tag $BACKEND_REPO:$IMAGE_TAG ${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/$BACKEND_REPO:$IMAGE_TAG
 
   post_build:
     commands:
-      - echo Build completed on `date`
-      - echo Pushing the Docker images...
-      - docker push $REPOSITORY_URI_FRONTEND:latest
-      - docker push $REPOSITORY_URI_FRONTEND:$IMAGE_TAG
-      - docker push $REPOSITORY_URI_BACKEND:latest
-      - docker push $REPOSITORY_URI_BACKEND:$IMAGE_TAG
-      - echo Updating Kubernetes manifests...
-      - sed -i.bak "s|your-registry/cloudops-frontend:latest|$REPOSITORY_URI_FRONTEND:$IMAGE_TAG|g" k8s/09-frontend-deployment.yaml
-      - sed -i.bak "s|your-registry/cloudops-backend:latest|$REPOSITORY_URI_BACKEND:$IMAGE_TAG|g" k8s/07-backend-deployment.yaml
-      - echo Deploying to EKS...
-      - kubectl apply -f k8s/
-      - echo Waiting for deployment to complete...
-      - kubectl rollout status deployment/frontend-deployment -n cloudops-demo --timeout=300s
-      - kubectl rollout status deployment/backend-deployment -n cloudops-demo --timeout=300s
-      - echo Getting service information...
-      - kubectl get services -n cloudops-demo
-      - echo Deployment completed successfully!
+      - echo Pushing Docker images to ECR...
+      - docker push ${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/$FRONTEND_REPO:$IMAGE_TAG
+      - docker push ${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/$BACKEND_REPO:$IMAGE_TAG
+
+      - echo Preparing Kubernetes manifest output directory...
+      - mkdir -p k8s-out
+
+      # --- FRONTEND ---
+      - sed "s|IMAGE_PLACEHOLDER|${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/$FRONTEND_REPO:$IMAGE_TAG|g" $K8S_MANIFEST_DIR/09-frontend-deployment.yaml > k8s-out/frontend-deployment.yaml
+      - cp $K8S_MANIFEST_DIR/10-frontend-service.yaml k8s-out/frontend-service.yaml
+
+      # --- BACKEND ---
+      - sed "s|IMAGE_PLACEHOLDER|${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/$BACKEND_REPO:$IMAGE_TAG|g" $K8S_MANIFEST_DIR/07-backend-deployment.yaml > k8s-out/backend-deployment.yaml
+      - cp $K8S_MANIFEST_DIR/08-backend-service.yaml k8s-out/backend-service.yaml
+
+      # --- DATABASE, SECRETS, CONFIGMAP, NAMESPACE ---
+      - cp $K8S_MANIFEST_DIR/00-namespace.yaml k8s-out/namespace.yaml || true
+      - cp $K8S_MANIFEST_DIR/01-configmap.yaml k8s-out/configmap.yaml || true
+      - cp $K8S_MANIFEST_DIR/02-secrets.yaml k8s-out/secrets.yaml || true
+
+      # --- INGRESS, HPA, NETWORK POLICY ---
+      - cp $K8S_MANIFEST_DIR/11-ingress.yaml k8s-out/ingress.yaml || true
+      - cp $K8S_MANIFEST_DIR/12-hpa.yaml k8s-out/hpa.yaml || true
+      - cp $K8S_MANIFEST_DIR/13-network-policy.yaml k8s-out/network-policy.yaml || true
+
+      # --- DEBUG ---
+      - echo "Final list of generated Kubernetes YAML files:"
+      - find k8s-out/
 
 artifacts:
+  base-directory: k8s-out
+  discard-paths: yes
   files:
-    - k8s/*
-    - scripts/*
-    - '**/*'
-  name: cloudops-demo-artifacts
+    - '**/*.yaml'
 
 cache:
   paths:
-    - '/root/.npm/**/*'
     - 'frontend/node_modules/**/*'
     - 'backend/node_modules/**/*'
