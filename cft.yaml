@@ -60,7 +60,7 @@ Parameters:
     Type: String
     NoEcho: true
     MinLength: 8
-
+    Default: task0987
 Conditions:
   HasKeyPair: !Not [!Equals [!Ref KeyPairName, ""]]
 
