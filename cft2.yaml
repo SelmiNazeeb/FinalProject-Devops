@@ -101,8 +101,8 @@ Parameters:
 
   EKSAdminIAMArn:
     Type: String
-    Description: arn:aws:iam::390403857216:user/terraform-user
-
+    Description: IAM ARN for EKS admin user
+    Default: arn:aws:iam::390403857216:user/terraform-user
   EKSDesiredSize:
     Type: Number
     Default: 2
