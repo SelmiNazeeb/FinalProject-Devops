@@ -1,9 +1,11 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# CloudOps Demo - RDS Setup Script
+# task management - RDS Setup Script
 # This script sets up AWS RDS PostgreSQL for the EKS application
 
 set -e
+
+export PATH="/usr/local/bin:$PATH"
 
 # Colors for output
 RED='\033[0;31m'

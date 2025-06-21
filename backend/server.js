@@ -15,6 +15,17 @@ const pool = new Pool({
   database: process.env.DB_NAME || 'taskflow_db', // Changed database name
   password: process.env.DB_PASSWORD || 'password',
   port: process.env.DB_PORT || 5432,
+  // --- START EDIT HERE ---
+  ssl: {
+    // This tells node-postgres to require SSL encryption
+    require: true,
+    // This setting means the client will not verify the server's certificate chain.
+    // Use this for development/testing to get connected.
+    // For production, it's strongly recommended to set this to `true`
+    // and provide the RDS CA certificate bundle to `ca: fs.readFileSync('/path/to/rds-ca-bundle.pem')`
+    rejectUnauthorized: false 
+  }
+  // --- END EDIT HERE ---
 });
 
 // Middleware

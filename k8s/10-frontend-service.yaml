@@ -16,4 +16,4 @@ spec:
     targetPort: 80
     protocol: TCP
   selector:
-    app: frontend 
+    app: frontend
