@@ -141,7 +141,7 @@ Resources:
           Value: !Sub "${ClusterName}-private-subnet-1"
         - Key: kubernetes.io/role/internal-elb
           Value: "1"
-        - Key: !Sub kubernetes.io/cluster/${ClusterName}
+        - Key: !Sub "kubernetes.io/cluster/${ClusterName}"
           Value: owned
   PrivateSubnet2:
     Type: AWS::EC2::Subnet
@@ -155,7 +155,7 @@ Resources:
           Value: !Sub "${ClusterName}-private-subnet-2"
         - Key: kubernetes.io/role/internal-elb
           Value: "1"
-        - Key: !Sub kubernetes.io/cluster/${ClusterName}
+        - Key: !Sub "kubernetes.io/cluster/${ClusterName}"
           Value: owned
   PrivateSubnet3:
     Type: AWS::EC2::Subnet
@@ -169,7 +169,7 @@ Resources:
           Value: !Sub "${ClusterName}-private-subnet-3"
         - Key: kubernetes.io/role/internal-elb
           Value: "1"
-        - Key: !Sub kubernetes.io/cluster/${ClusterName}
+        - Key: !Sub "kubernetes.io/cluster/${ClusterName}"
           Value: owned
 
   # Route Tables & NAT
