@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: >
-  Three-tier infrastructure: VPC + EKS + RDS PostgreSQL with public/private subnets,
+  Three-tier infra: VPC + EKS + RDS PostgreSQL with public/private subnets,
   IGW, NAT Gateway, route tables, security groups, IAM roles, etc.
 
 Parameters:
@@ -24,8 +24,8 @@ Parameters:
     Default: 3
   KeyPairName:
     Type: AWS::EC2::KeyPair::KeyName
-    Default: "ustweb"
-    Description: >Optional SSH key for worker nodes
+    Default: ustweb
+    Description: Optional SSH key for worker nodes
   VpcCIDR:
     Type: String
     Default: 10.0.0.0/16
@@ -62,12 +62,11 @@ Parameters:
     MinLength: 8
 
 Conditions:
-  HasKeyPair: !Not [ !Equals [ !Ref KeyPairName, "" ] ]
+  HasKeyPair: !Not [!Equals [!Ref KeyPairName, ""]]
 
 Resources:
 
-  ### VPC, Subnets, Internet Gateway, NAT, RouteTables, Associations ###
-  
+  ### VPC & Networking ###
   VPC:
     Type: AWS::EC2::VPC
     Properties:
@@ -91,7 +90,7 @@ Resources:
       VpcId: !Ref VPC
       InternetGatewayId: !Ref InternetGateway
 
-  # Public Subnets (for NAT Gateway, Load Balancers)
+  # Public Subnets
   PublicSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
@@ -100,11 +99,8 @@ Resources:
       MapPublicIpOnLaunch: true
       AvailabilityZone: !Select [0, !GetAZs !Ref "AWS::Region"]
       Tags:
-        - Key: Name
-          Value: !Sub "${ClusterName}-public-subnet-1"
-        - Key: "kubernetes.io/role/elb"
-          Value: "1" # Required tag for EKS to auto-discover ELB subnets
-
+        - Key: Name; Value: !Sub "${ClusterName}-public-subnet-1"
+        - Key: kubernetes.io/role/elb; Value: "1"
   PublicSubnet2:
     Type: AWS::EC2::Subnet
     Properties:
@@ -113,11 +109,8 @@ Resources:
       MapPublicIpOnLaunch: true
       AvailabilityZone: !Select [1, !GetAZs !Ref "AWS::Region"]
       Tags:
-        - Key: Name
-          Value: !Sub "${ClusterName}-public-subnet-2"
-        - Key: "kubernetes.io/role/elb"
-          Value: "1"
-
+        - Key: Name; Value: !Sub "${ClusterName}-public-subnet-2"
+        - Key: kubernetes.io/role/elb; Value: "1"
   PublicSubnet3:
     Type: AWS::EC2::Subnet
     Properties:
@@ -126,12 +119,10 @@ Resources:
       MapPublicIpOnLaunch: true
       AvailabilityZone: !Select [2, !GetAZs !Ref "AWS::Region"]
       Tags:
-        - Key: Name
-          Value: !Sub "${ClusterName}-public-subnet-3"
-        - Key: "kubernetes.io/role/elb"
-          Value: "1"
+        - Key: Name; Value: !Sub "${ClusterName}-public-subnet-3"
+        - Key: kubernetes.io/role/elb; Value: "1"
 
-  # Private Subnets (for EKS worker nodes and internal resources)
+  # Private Subnets
   PrivateSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
@@ -140,13 +131,9 @@ Resources:
       MapPublicIpOnLaunch: false
       AvailabilityZone: !Select [0, !GetAZs !Ref "AWS::Region"]
       Tags:
-        - Key: Name
-          Value: !Sub "${ClusterName}-private-subnet-1"
-        - Key: "kubernetes.io/role/internal-elb"
-          Value: "1" # Required tag for EKS to auto-discover internal ELB subnets
-        - Key: !Sub "kubernetes.io/cluster/${ClusterName}"
-          Value: "owned" # Required tag for EKS
-
+        - Key: Name; Value: !Sub "${ClusterName}-private-subnet-1"
+        - Key: kubernetes.io/role/internal-elb; Value: "1"
+        - Key: !Sub kubernetes.io/cluster/${ClusterName}; Value: owned
   PrivateSubnet2:
     Type: AWS::EC2::Subnet
     Properties:
@@ -155,13 +142,9 @@ Resources:
       MapPublicIpOnLaunch: false
       AvailabilityZone: !Select [1, !GetAZs !Ref "AWS::Region"]
       Tags:
-        - Key: Name
-          Value: !Sub "${ClusterName}-private-subnet-2"
-        - Key: "kubernetes.io/role/internal-elb"
-          Value: "1"
-        - Key: !Sub "kubernetes.io/cluster/${ClusterName}"
-          Value: "owned"
-
+        - Key: Name; Value: !Sub "${ClusterName}-private-subnet-2"
+        - Key: kubernetes.io/role/internal-elb; Value: "1"
+        - Key: !Sub kubernetes.io/cluster/${ClusterName}; Value: owned
   PrivateSubnet3:
     Type: AWS::EC2::Subnet
     Properties:
@@ -170,121 +153,99 @@ Resources:
       MapPublicIpOnLaunch: false
       AvailabilityZone: !Select [2, !GetAZs !Ref "AWS::Region"]
       Tags:
-        - Key: Name
-          Value: !Sub "${ClusterName}-private-subnet-3"
-        - Key: "kubernetes.io/role/internal-elb"
-          Value: "1"
-        - Key: !Sub "kubernetes.io/cluster/${ClusterName}"
-          Value: "owned"
+        - Key: Name; Value: !Sub "${ClusterName}-private-subnet-3"
+        - Key: kubernetes.io/role/internal-elb; Value: "1"
+        - Key: !Sub kubernetes.io/cluster/${ClusterName}; Value: owned
 
-  # Route Tables and Associations
+  # Route Tables & NAT
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref VPC
       Tags:
-        - Key: Name
-          Value: !Sub "${ClusterName}-public-rt"
-
+        - Key: Name; Value: !Sub "${ClusterName}-public-rt"
   PublicRoute:
     Type: AWS::EC2::Route
     DependsOn: AttachInternetGateway
     Properties:
       RouteTableId: !Ref PublicRouteTable
-      DestinationCidrBlock: 0.0.0.0/0
+      DestinationCidrBlock: "0.0.0.0/0"
       GatewayId: !Ref InternetGateway
-
-  PublicSubnet1RouteTableAssociation:
+  PublicSubnet1RTAssoc:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       SubnetId: !Ref PublicSubnet1
       RouteTableId: !Ref PublicRouteTable
-
-  PublicSubnet2RouteTableAssociation:
+  PublicSubnet2RTAssoc:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       SubnetId: !Ref PublicSubnet2
       RouteTableId: !Ref PublicRouteTable
-
-  PublicSubnet3RouteTableAssociation:
+  PublicSubnet3RTAssoc:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       SubnetId: !Ref PublicSubnet3
       RouteTableId: !Ref PublicRouteTable
 
-  # NAT Gateway for Private Subnets Internet Access
   NatEIP:
     Type: AWS::EC2::EIP
     DependsOn: AttachInternetGateway
     Properties:
       Domain: vpc
-
   NatGateway:
     Type: AWS::EC2::NatGateway
     Properties:
       AllocationId: !GetAtt NatEIP.AllocationId
-      SubnetId: !Ref PublicSubnet1 # NAT Gateway should be in a public subnet
+      SubnetId: !Ref PublicSubnet1
       Tags:
-        - Key: Name
-          Value: !Sub "${ClusterName}-nat-gateway"
-
+        - Key: Name; Value: !Sub "${ClusterName}-nat-gateway"
   PrivateRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref VPC
       Tags:
-        - Key: Name
-          Value: !Sub "${ClusterName}-private-rt"
-
+        - Key: Name; Value: !Sub "${ClusterName}-private-rt"
   PrivateRoute:
     Type: AWS::EC2::Route
     Properties:
       RouteTableId: !Ref PrivateRouteTable
-      DestinationCidrBlock: 0.0.0.0/0
+      DestinationCidrBlock: "0.0.0.0/0"
       NatGatewayId: !Ref NatGateway
-
-  PrivateSubnet1RouteTableAssociation:
+  PrivateSubnet1RTAssoc:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       SubnetId: !Ref PrivateSubnet1
       RouteTableId: !Ref PrivateRouteTable
-
-  PrivateSubnet2RouteTableAssociation:
+  PrivateSubnet2RTAssoc:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       SubnetId: !Ref PrivateSubnet2
       RouteTableId: !Ref PrivateRouteTable
-
-  PrivateSubnet3RouteTableAssociation:
+  PrivateSubnet3RTAssoc:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       SubnetId: !Ref PrivateSubnet3
       RouteTableId: !Ref PrivateRouteTable
 
-  # --- Security Groups ---
-
-  # Security Group for the EKS control plane (allows communication with worker nodes)
+  ### Security Groups ###
   EKSClusterSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: Security group for EKS cluster control plane communication.
+      GroupDescription: "EKS control plane communication"
       VpcId: !Ref VPC
       SecurityGroupIngress:
-        # Allow worker nodes to communicate with the EKS API server
         - IpProtocol: tcp
           FromPort: 443
           ToPort: 443
-          SourceSecurityGroupId: !GetAtt EKSNodeSecurityGroup.GroupId # Referencing the node security group
+          SourceSecurityGroupId: !GetAtt EKSNodeSecurityGroup.GroupId
       Tags:
-        - Key: Name
-          Value: !Sub "${ClusterName}-cluster-sg"
-        - Key: !Sub "kubernetes.io/cluster/${ClusterName}"
-          Value: "owned"
-  ### Security Groups ###
+        - Key: Name; Value: !Sub "${ClusterName}-cluster-sg"
+        - Key: !Sub kubernetes.io/cluster/${ClusterName}; Value: owned
+
   EKSNodeSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: EKS Worker Nodes SG
+      GroupDescription: "EKS worker nodes SG"
       VpcId: !Ref VPC
       SecurityGroupIngress:
         - IpProtocol: -1
@@ -297,25 +258,16 @@ Resources:
           SourceSecurityGroupId: !GetAtt EKSNodeSecurityGroup.GroupId
         - !If
           - HasKeyPair
-          - IpProtocol: tcp; FromPort: 22; ToPort: 22; CidrIp: 0.0.0.0/0
+          - IpProtocol: tcp
+            FromPort: 22
+            ToPort: 22
+            CidrIp: 0.0.0.0/0
           - !Ref "AWS::NoValue"
 
-  EKSClusterSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: EKS Control Plane SG
-      VpcId: !Ref VPC
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 443
-          ToPort: 443
-          SourceSecurityGroupId: !GetAtt EKSNodeSecurityGroup.GroupId
-
-  ### RDS-specific Networking ###
   DBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: RDS SG
+      GroupDescription: "RDS access SG"
       VpcId: !Ref VPC
       SecurityGroupIngress:
         - IpProtocol: tcp
@@ -323,7 +275,7 @@ Resources:
           ToPort: 5432
           SourceSecurityGroupId: !GetAtt EKSNodeSecurityGroup.GroupId
 
-  ### IAM and RDS Monitoring Role ###
+  ### IAM Roles ###
   RDSEnhancedMonitoringRole:
     Type: AWS::IAM::Role
     Properties:
@@ -331,18 +283,19 @@ Resources:
         Version: '2012-10-17'
         Statement:
           - Effect: Allow
-            Principal: { Service: monitoring.rds.amazonaws.com }
+            Principal:
+              Service: monitoring.rds.amazonaws.com
             Action: sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole
       Path: /
 
-  ### DB Subnet Group ###
+  # DB Subnet Group
   DBSubnetGroup:
     Type: AWS::RDS::DBSubnetGroup
     Properties:
       DBSubnetGroupName: !Sub "${DBInstanceIdentifier}-subnet-group"
-      DBSubnetGroupDescription: "Subnet Group for RDS"
+      DBSubnetGroupDescription: "Subnet group for RDS"
       SubnetIds:
         - !Ref PrivateSubnet1
         - !Ref PrivateSubnet2
@@ -351,7 +304,7 @@ Resources:
         - Key: Name; Value: !Sub "${DBInstanceIdentifier}-subnet-group"
         - Key: Project; Value: CloudOps-Demo
 
-  ### RDS Instance ###
+  # RDS Instance
   DBInstance:
     Type: AWS::RDS::DBInstance
     DeletionPolicy: Snapshot
@@ -381,32 +334,49 @@ Resources:
         - Key: Project; Value: CloudOps-Demo
         - Key: Environment; Value: Demo
 
-  ### EKS Cluster and Node Group ###
+  ### EKS IAM Roles ###
   EKSClusterRole:
     Type: AWS::IAM::Role
     Properties:
-      AssumeRolePolicyDocument: …
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: eks.amazonaws.com
+            Action: sts:AssumeRole
       ManagedPolicyArns:
-        - AmazonEKSClusterPolicy
-        - AmazonEKSVPCResourceController
+        - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
+        - arn:aws:iam::aws:policy/AmazonEKSVPCResourceController
 
   EKSNodeGroupRole:
     Type: AWS::IAM::Role
     Properties:
-      AssumeRolePolicyDocument: …
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
       ManagedPolicyArns:
-        - AmazonEKSWorkerNodePolicy
-        - AmazonEC2ContainerRegistryReadOnly
-        - AmazonEKS_CNI_Policy
+        - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+        - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
 
+  # EKS Cluster & Node Group
   EKSCluster:
     Type: AWS::EKS::Cluster
     Properties:
       Name: !Ref ClusterName
       RoleArn: !GetAtt EKSClusterRole.Arn
       ResourcesVpcConfig:
-        SubnetIds: [!Ref PrivateSubnet1, !Ref PrivateSubnet2, !Ref PrivateSubnet3]
-        SecurityGroupIds: [!GetAtt EKSClusterSecurityGroup.GroupId]
+        SubnetIds:
+          - !Ref PrivateSubnet1
+          - !Ref PrivateSubnet2
+          - !Ref PrivateSubnet3
+        SecurityGroupIds:
+          - !GetAtt EKSClusterSecurityGroup.GroupId
         EndpointPublicAccess: true
         EndpointPrivateAccess: true
       Version: "1.28"
@@ -417,17 +387,22 @@ Resources:
       ClusterName: !Ref EKSCluster
       NodegroupName: !Ref NodeGroupName
       NodeRole: !GetAtt EKSNodeGroupRole.Arn
-      Subnets: [!Ref PrivateSubnet1, !Ref PrivateSubnet2, !Ref PrivateSubnet3]
+      Subnets:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+        - !Ref PrivateSubnet3
       ScalingConfig:
         DesiredSize: !Ref NodeDesiredCapacity
         MinSize: !Ref NodeMinSize
         MaxSize: !Ref NodeMaxSize
-      InstanceTypes: [!Ref NodeInstanceType]
+      InstanceTypes:
+        - !Ref NodeInstanceType
       AmiType: AL2_x86_64
       DiskSize: 20
       RemoteAccess:
         Ec2SshKey: !If [HasKeyPair, !Ref KeyPairName, !Ref "AWS::NoValue"]
-        SourceSecurityGroups: [!GetAtt EKSNodeSecurityGroup.GroupId]
+        SourceSecurityGroups:
+          - !GetAtt EKSNodeSecurityGroup.GroupId
       Labels:
         app: three-tier
         environment: dev
@@ -438,12 +413,13 @@ Resources:
 Outputs:
   ClusterEndpoint:
     Value: !GetAtt EKSCluster.Endpoint
-    Export: { Name: !Sub "${AWS::StackName}-ClusterEndpoint" }
-
+    Export:
+      Name: !Sub "${AWS::StackName}-ClusterEndpoint"
   DBEndpoint:
     Value: !GetAtt DBInstance.Endpoint.Address
-    Export: { Name: !Sub "${AWS::StackName}-DBEndpoint" }
-
+    Export:
+      Name: !Sub "${AWS::StackName}-DBEndpoint"
   DBPort:
     Value: !GetAtt DBInstance.Endpoint.Port
-    Export: { Name: !Sub "${AWS::StackName}-DBPort" }
+    Export:
+      Name: !Sub "${AWS::StackName}-DBPort"
