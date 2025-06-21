@@ -61,9 +61,6 @@ Parameters:
     NoEcho: true
     MinLength: 8
     Default: task0987
-  EKSAdminIAMArn:
-    Type: String
-    Description: arn:aws:iam::390403857216:user/terraform-user
 Conditions:
   HasKeyPair: !Not [!Equals [!Ref KeyPairName, ""]]
 
@@ -420,12 +417,6 @@ Resources:
       AccessConfig:
         AuthenticationMode: API_AND_CONFIG_MAP
         BootstrapClusterCreatorAdminPermissions: true
-        AccessEntries:
-          - PrincipalArn: !Ref EKSAdminIAMArn
-            AccessPolicies:
-              - PolicyArn: arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy
-              AccessScope:
-                Type: cluster
 
   EKSNodeGroup:
     Type: AWS::EKS::Nodegroup
