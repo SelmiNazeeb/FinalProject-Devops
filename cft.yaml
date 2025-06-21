@@ -432,9 +432,8 @@ Resources:
         app: three-tier
         environment: dev
       Tags:
-        Name: !Sub "${ClusterName}-nodegroup"
-        # The following tag is crucial for EKS to recognize the nodes correctly and for cluster auto-scaling
-        !Sub "eks.amazonaws.com/cluster-name": !Ref ClusterName
+        "Name": !Sub "${ClusterName}-nodegroup"
+        "eks.amazonaws.com/cluster-name": !Ref ClusterName
 
 Outputs:
   ClusterEndpoint:
