@@ -196,21 +196,25 @@ resource "aws_security_group" "db" {
 #############################
 
 resource "aws_iam_role" "rds_enhanced_monitoring" {
-  name = "${var.db_instance_identifier}-rds-enhanced-monitoring-role"
+  name = "task-db-postgres-rds-enhanced-monitoring-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Effect    = "Allow"
-      Principal = { Service = "monitoring.rds.amazonaws.com" }
-      Action    = "sts:AssumeRole"
+      Action = "sts:AssumeRole"
+      Effect = "Allow"
+      Principal = {
+        Service = "monitoring.rds.amazonaws.com"
+      }
     }]
   })
-
-  managed_policy_arns = [
-    "arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole"
-  ]
 }
+
+resource "aws_iam_role_policy_attachment" "rds_monitoring_attachment" {
+  role       = aws_iam_role.rds_enhanced_monitoring.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole"
+}
+
 
 resource "aws_iam_role" "eks_cluster" {
   name = "${var.cluster_name}-eks-cluster-role"
