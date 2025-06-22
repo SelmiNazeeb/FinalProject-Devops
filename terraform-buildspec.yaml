@@ -13,12 +13,15 @@ phases:
 
   pre_build:
     commands:
+      - cd terraform_infra
       - terraform init -backend-config="bucket=selmicapstones3" -backend-config="key=terraform.tfstate" -backend-config="region=us-east-1"
 
   build:
     commands:
+      - cd terraform_infra
       - terraform plan -out=tfplan
 
   post_build:
     commands:
+      - cd terraform_infra
       - terraform apply -auto-approve tfplan
