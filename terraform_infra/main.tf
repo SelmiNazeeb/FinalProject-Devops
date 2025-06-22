@@ -277,11 +277,11 @@ resource "aws_iam_role_policy_attachment" "eks_node_group_ecr_policy" {
 #############################
 
 resource "aws_db_subnet_group" "this" {
-  name       = "${var.db_instance_identifier}-subnet-group"
+  name       = "${var.db_instance_identifier}-subnet-group1"
   subnet_ids = aws_subnet.private[*].id
 
   tags = {
-    Name    = "${var.db_instance_identifier}-subnet-group"
+    Name    = "${var.db_instance_identifier}-subnet-group1"
     Project = "CloudOps-Demo"
   }
 }
