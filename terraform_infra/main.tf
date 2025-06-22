@@ -297,7 +297,7 @@ resource "aws_db_instance" "this" {
 
 module "eks" {
   source          = "terraform-aws-modules/eks/aws"
-  version         = ">= 19.0"
+  version         = "20.37.1"
 
   cluster_name    = var.cluster_name
   cluster_version = "1.27"

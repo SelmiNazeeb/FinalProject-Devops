@@ -20,8 +20,7 @@ phases:
 
   build:
     commands:
-      - terraform plan -out=tfplan
-
+      - terraform -chdir=terraform_infra plan -out=tfplan
   post_build:
     commands:
-      - terraform apply -auto-approve tfplan
+      - terraform -chdir=terraform_infra apply -auto-approve tfplan
