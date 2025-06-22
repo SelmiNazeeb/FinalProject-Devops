@@ -20,10 +20,8 @@ phases:
 
   build:
     commands:
-      - cd terraform_infra
       - terraform plan -out=tfplan
 
   post_build:
     commands:
-      - cd terraform_infra
       - terraform apply -auto-approve tfplan
