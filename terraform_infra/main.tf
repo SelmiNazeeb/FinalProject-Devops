@@ -302,26 +302,27 @@ module "eks" {
   cluster_name    = var.cluster_name
   cluster_version = "1.28"
 
-  vpc_id  = aws_vpc.this.id
-  subnet_ids = aws_subnet.private[*].id
+  vpc_id      = aws_vpc.this.id
+  subnet_ids  = aws_subnet.private[*].id
 
   cluster_endpoint_private_access = true
   cluster_endpoint_public_access  = false
 
-  cluster_security_group_id = aws_security_group.eks_cluster.id
-  create_node_security_group = false
-  node_security_group_ids    = [aws_security_group.eks_node.id]
+  cluster_security_group_id      = aws_security_group.eks_cluster.id
+  create_node_security_group     = false  # <- tells the module to not create its own
+  # node_security_group_id is NOT needed here unless you're using self-managed node groups
 
   eks_managed_node_groups = {
     default = {
-      desired_size = 2
-      max_size     = 3
-      min_size     = 1
+      desired_size   = 2
+      max_size       = 3
+      min_size       = 1
       instance_types = ["t3.medium"]
       key_name       = var.key_name
 
       iam_role_arn = aws_iam_role.eks_node_group.arn
       subnet_ids   = aws_subnet.private[*].id
+      security_groups = [aws_security_group.eks_node.id]  # <- correct place to set node SG
     }
   }
 
@@ -330,4 +331,3 @@ module "eks" {
     Project     = "CloudOps-Demo"
   }
 }
-
