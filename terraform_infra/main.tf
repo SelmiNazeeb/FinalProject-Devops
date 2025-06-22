@@ -84,7 +84,7 @@ resource "aws_route_table_association" "public" {
 # NAT Gateway and EIP
 
 resource "aws_eip" "nat" {
-  vpc = true
+  domain = "vpc"
   depends_on = [aws_internet_gateway.this]
   tags = {
     Name = "${var.cluster_name}-nat-eip"
