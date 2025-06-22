@@ -16,14 +16,6 @@ phases:
     commands:
       - cd terraform_infra
       - terraform init -backend-config="bucket=selmicapstones3" -backend-config="key=terraform.tfstate" -backend-config="region=us-east-1" -backend-config="dynamodb_table=terraform-lock-table"
-      - echo "Importing existing AWS resources into Terraform..."
-      - terraform import aws_iam_role.rds_enhanced_monitoring task-db-postgres-rds-enhanced-monitoring-role || true
-      - terraform import aws_iam_role.eks_cluster three-tier-eks-cluster-eks-cluster-role || true
-      - terraform import aws_iam_role.eks_node_group three-tier-eks-cluster-eks-node-group-role || true
-      - terraform import aws_db_subnet_group.this task-db-postgres-subnet-group || true
-      - terraform import 'module.eks.aws_cloudwatch_log_group.this[0]' /aws/eks/three-tier-eks-cluster/cluster
-      - terraform import 'module.eks.module.kms.aws_kms_alias.this["cluster"]' alias/eks/three-tier-eks-cluster
-
 
   build:
     commands:
