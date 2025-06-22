@@ -296,34 +296,32 @@ resource "aws_db_instance" "this" {
 #############################
 
 module "eks" {
-  source          = "terraform-aws-modules/eks/aws"
-  version         = "20.37.1"
+  source  = "terraform-aws-modules/eks/aws"
+  version = "20.37.1"
 
   cluster_name    = var.cluster_name
-  cluster_version = "1.27"
+  cluster_version = "1.28"
 
-  subnets         = aws_subnet.private[*].id
-  vpc_id          = aws_vpc.this.id
+  vpc_id  = aws_vpc.this.id
+  subnet_ids = aws_subnet.private[*].id
 
   cluster_endpoint_private_access = true
   cluster_endpoint_public_access  = false
 
-  manage_aws_auth = true
-
   cluster_security_group_id = aws_security_group.eks_cluster.id
-  node_security_group_ids   = [aws_security_group.eks_node.id]
+  create_node_security_group = false
+  node_security_group_ids    = [aws_security_group.eks_node.id]
 
-  node_groups = {
+  eks_managed_node_groups = {
     default = {
-      desired_capacity = 2
-      max_capacity     = 3
-      min_capacity     = 1
-      instance_types   = ["t3.medium"]
-      key_name         = var.key_name
+      desired_size = 2
+      max_size     = 3
+      min_size     = 1
+      instance_types = ["t3.medium"]
+      key_name       = var.key_name
 
       iam_role_arn = aws_iam_role.eks_node_group.arn
-
-      subnet_ids = aws_subnet.private[*].id
+      subnet_ids   = aws_subnet.private[*].id
     }
   }
 
@@ -332,9 +330,4 @@ module "eks" {
     Project     = "CloudOps-Demo"
   }
 }
-
-#############################
-# Outputs
-#############################
-
 
