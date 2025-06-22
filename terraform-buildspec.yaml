@@ -20,8 +20,6 @@ phases:
       - terraform import aws_iam_role.rds_enhanced_monitoring task-db-postgres-rds-enhanced-monitoring-role || true
       - terraform import aws_iam_role.eks_cluster three-tier-eks-cluster-eks-cluster-role || true
       - terraform import aws_iam_role.eks_node_group three-tier-eks-cluster-eks-node-group-role || true
-      - terraform import aws_kms_alias.eks_kms_alias alias/eks/three-tier-eks-cluster || true
-      - terraform import aws_cloudwatch_log_group.eks_cluster_log_group /aws/eks/three-tier-eks-cluster/cluster || true
       - terraform import aws_db_subnet_group.this task-db-postgres-subnet-group || true
 
   build:
