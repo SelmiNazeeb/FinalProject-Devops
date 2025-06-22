@@ -10,13 +10,16 @@ phases:
       - unzip -o terraform_1.6.6_linux_amd64.zip
       - mv terraform /usr/local/bin/
       - terraform --version
-      - echo "Listing root dir contents:"
       - ls -la
 
   pre_build:
     commands:
       - cd terraform_infra
-      - terraform init -backend-config="bucket=selmicapstones3" -backend-config="key=terraform.tfstate" -backend-config="region=us-east-1"
+      - terraform init \
+          -backend-config="bucket=selmicapstones3" \
+          -backend-config="key=terraform.tfstate" \
+          -backend-config="region=us-east-1" \
+          -backend-config="dynamodb_table=terraform-lock-table"
       - echo "Importing existing AWS resources into Terraform..."
       - terraform import aws_iam_role.rds_enhanced_monitoring task-db-postgres-rds-enhanced-monitoring-role || true
       - terraform import aws_iam_role.eks_cluster three-tier-eks-cluster-eks-cluster-role || true
@@ -27,7 +30,9 @@ phases:
 
   build:
     commands:
+      - terraform validate
       - terraform plan -out=tfplan
+
   post_build:
     commands:
       - terraform apply -auto-approve tfplan
