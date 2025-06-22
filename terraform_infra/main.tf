@@ -9,7 +9,7 @@ terraform {
     }
 # Configure the AWS Provider
 provider "aws" {
-    region = var.my_region
+    region = var.region
 }
 #############################
 # VPC and Networking
