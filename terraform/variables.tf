@@ -25,7 +25,7 @@ variable "kubernetes_version" {
 variable "db_name" {
   description = "RDS database name"
   type        = string
-  default     = "cloudops_demo"
+  default     = "taskflow_db"
 }
 
 variable "db_username" {

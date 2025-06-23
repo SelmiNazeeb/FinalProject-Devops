@@ -180,17 +180,6 @@ module "rds" {
   tags = local.tags
 }
 
-################################################################################
-# ECR Repositories
-################################################################################
-
-module "ecr" {
-  source = "./modules/ecr"
-
-  repository_names = ["cloudops-frontend", "cloudops-backend"]
-  
-  tags = local.tags
-}
 
 ################################################################################
 # CodeBuild & CI/CD
@@ -228,18 +217,3 @@ module "ebs_csi_role" {
   tags = local.tags
 }
 
-################################################################################
-# Load Balancer Controller
-################################################################################
-
-module "load_balancer_controller" {
-  source = "./modules/load-balancer-controller"
-
-  cluster_name = module.eks.cluster_name
-  oidc_provider_arn = module.eks.oidc_provider_arn
-  vpc_id = module.vpc.vpc_id
-
-  depends_on = [module.eks]
-
-  tags = local.tags
-} 
