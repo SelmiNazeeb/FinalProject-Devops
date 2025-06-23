@@ -7,7 +7,7 @@ metadata:
     app: taskns
 data:
   # Database configuration (AWS RDS)
-  DB_HOST: "task-db-postgres.czs2i4meqfm1.us-east-1.rds.amazonaws.com"  # Replace with your RDS endpoint
+  DB_HOST: "task-db-postgres.czus4mukos81.us-east-2.rds.amazonaws.com"  # Replace with your RDS endpoint
   DB_PORT: "5432"
   DB_NAME: "taskflow_db"
   DB_USER: "postgres"
