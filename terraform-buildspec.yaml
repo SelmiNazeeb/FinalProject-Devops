@@ -23,7 +23,7 @@ phases:
   build:
     commands:
       - echo "Setting up kubeconfig..."
-      - aws eks update-kubeconfig --name ${CLUSTER_NAME} --region ${AWS_REGION}
+      - aws eks update-kubeconfig --name three-tier-eks-cluster --region us-east-2
       - terraform validate
       - echo "Applying only EKS cluster first"
       - terraform apply -target=module.eks -auto-approve
