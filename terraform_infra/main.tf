@@ -328,7 +328,7 @@ module "eks" {
   subnet_ids  = aws_subnet.private[*].id
 
   cluster_endpoint_private_access = true
-  cluster_endpoint_public_access  = false
+  cluster_endpoint_public_access  = true
 
   cluster_security_group_id      = aws_security_group.eks_cluster.id
   create_node_security_group     = false  # <- tells the module to not create its own
