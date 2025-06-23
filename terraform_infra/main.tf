@@ -352,7 +352,7 @@ module "eks" {
   aws_auth_roles = [
     {
       rolearn  = aws_iam_role.eks_node_group.arn
-      username = "system:node:ec2-3-95-164-156.compute-1.amazonaws.com"
+      username = "system:node:{{EC2PrivateDNSName}}"
       groups   = ["system:bootstrappers", "system:nodes"]
     },
     {
