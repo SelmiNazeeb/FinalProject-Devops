@@ -67,7 +67,7 @@ aws dynamodb create-table \
 echo "Creating Parameter Store entry for DB password..."
 aws ssm put-parameter \
     --name "/${PROJECT_NAME}/db-password" \
-    --value "changeme-secure-password-123" \
+    --value "task0987" \
     --type "SecureString" \
     --description "Database password for CloudOps demo" \
     --overwrite \
