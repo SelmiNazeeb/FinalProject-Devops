@@ -319,44 +319,44 @@ resource "aws_db_instance" "this" {
 
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
-  version = "20.37.1"
+  version = "21.2.0"
 
   cluster_name    = var.cluster_name
   cluster_version = "1.28"
 
-  vpc_id      = aws_vpc.this.id
-  subnet_ids  = aws_subnet.private[*].id
+  vpc_id     = aws_vpc.this.id
+  subnet_ids = aws_subnet.private[*].id
 
   cluster_endpoint_private_access = true
   cluster_endpoint_public_access  = true
 
-  cluster_security_group_id      = aws_security_group.eks_cluster.id
-  create_node_security_group     = false  # <- tells the module to not create its own
-  # node_security_group_id is NOT needed here unless you're using self-managed node groups
+  cluster_security_group_id  = aws_security_group.eks_cluster.id
+  create_node_security_group = false
 
   eks_managed_node_groups = {
     default = {
-      desired_size   = 2
-      max_size       = 3
-      min_size       = 1
-      instance_types = ["t3.medium"]
-      key_name       = var.key_name
+      desired_capacity = 2     # rename desired_size to desired_capacity in v21
+      max_capacity     = 3     # rename max_size to max_capacity
+      min_capacity     = 1     # rename min_size to min_capacity
+      instance_types   = ["t3.medium"]
+      key_name         = var.key_name
 
-      iam_role_arn = aws_iam_role.eks_node_group.arn
-      subnet_ids   = aws_subnet.private[*].id
-      security_groups = [aws_security_group.eks_node.id]  # <- correct place to set node SG
+      iam_role_arn     = aws_iam_role.eks_node_group.arn
+      subnet_ids       = aws_subnet.private[*].id
+      security_groups  = [aws_security_group.eks_node.id]
     }
   }
 
   manage_aws_auth_configmap = true
+
   aws_auth_roles = [
     {
       rolearn  = aws_iam_role.eks_node_group.arn
-      username = "system:node:{{EC2PrivateDNSName}}"
+      username = "system:node:{{EC2PrivateDNSName}}"  # use the placeholder here, NOT the actual hostname
       groups   = ["system:bootstrappers", "system:nodes"]
     },
     {
-      rolearn  = "arn:aws:iam::390403857216:role/service-role/codebuild-terraform-build-service-role"  # Your CodeBuild role ARN
+      rolearn  = "arn:aws:iam::390403857216:role/service-role/codebuild-terraform-build-service-role"
       username = "codebuild"
       groups   = ["system:masters"]
     }
@@ -364,7 +364,7 @@ module "eks" {
 
   aws_auth_users = [
     {
-      userarn  = "arn:aws:iam::390403857216:user/terraform-user"  # Your IAM user ARN
+      userarn  = "arn:aws:iam::390403857216:user/terraform-user"
       username = "terraform-user"
       groups   = ["system:masters"]
     }
