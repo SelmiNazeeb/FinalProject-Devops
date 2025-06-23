@@ -348,6 +348,28 @@ module "eks" {
     }
   }
 
+  manage_aws_auth_configmap = true
+  aws_auth_roles = [
+    {
+      rolearn  = aws_iam_role.eks_node_group.arn
+      username = "system:node:ec2-3-95-164-156.compute-1.amazonaws.com"
+      groups   = ["system:bootstrappers", "system:nodes"]
+    },
+    {
+      rolearn  = "arn:aws:iam::390403857216:role/service-role/codebuild-terraform-build-service-role"  # Your CodeBuild role ARN
+      username = "codebuild"
+      groups   = ["system:masters"]
+    }
+  ]
+
+  aws_auth_users = [
+    {
+      userarn  = "arn:aws:iam::390403857216:user/terraform-user"  # Your IAM user ARN
+      username = "terraform-user"
+      groups   = ["system:masters"]
+    }
+  ]
+
   tags = {
     Environment = "demo"
     Project     = "CloudOps-Demo"
