@@ -10,7 +10,6 @@ phases:
       - unzip -o terraform_1.6.6_linux_amd64.zip
       - mv terraform /usr/local/bin/
       - terraform --version
-      - ls -la
 
   pre_build:
     commands:
@@ -20,8 +19,14 @@ phases:
   build:
     commands:
       - terraform validate
-      - terraform plan -out=tfplan
+      - echo "Applying only EKS cluster first"
+      - terraform apply -target=module.eks -auto-approve
 
-  post_build:
-    commands:
-      - terraform apply -auto-approve tfplan
+      - echo "Waiting for EKS cluster to be ready..."
+      - |
+        for i in {1..20}; do
+          aws eks describe-cluster --name ${CLUSTER_NAME} --region ${AWS_REGION} --query "cluster.status" --output text | grep -q ACTIVE && break || sleep 15
+        done
+
+      - echo "Applying rest of Terraform including aws-auth ConfigMap"
+      - terraform apply -auto-approve
