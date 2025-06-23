@@ -319,13 +319,13 @@ resource "aws_db_instance" "this" {
 
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
-  version = "21.2.0"
+  version = "20.37.1"
 
   cluster_name    = var.cluster_name
   cluster_version = "1.28"
 
-  vpc_id     = aws_vpc.this.id
-  subnet_ids = aws_subnet.private[*].id
+  vpc_id      = aws_vpc.this.id
+  subnet_ids  = aws_subnet.private[*].id
 
   cluster_endpoint_private_access = true
   cluster_endpoint_public_access  = true
@@ -335,43 +335,66 @@ module "eks" {
 
   eks_managed_node_groups = {
     default = {
-      desired_capacity = 2     # rename desired_size to desired_capacity in v21
-      max_capacity     = 3     # rename max_size to max_capacity
-      min_capacity     = 1     # rename min_size to min_capacity
-      instance_types   = ["t3.medium"]
-      key_name         = var.key_name
+      desired_size   = 2
+      max_size       = 3
+      min_size       = 1
+      instance_types = ["t3.medium"]
+      key_name       = var.key_name
 
-      iam_role_arn     = aws_iam_role.eks_node_group.arn
-      subnet_ids       = aws_subnet.private[*].id
-      security_groups  = [aws_security_group.eks_node.id]
+      iam_role_arn    = aws_iam_role.eks_node_group.arn
+      subnet_ids      = aws_subnet.private[*].id
+      security_groups = [aws_security_group.eks_node.id]
     }
   }
-
-  manage_aws_auth_configmap = true
-
-  aws_auth_roles = [
-    {
-      rolearn  = aws_iam_role.eks_node_group.arn
-      username = "system:node:{{EC2PrivateDNSName}}"  # use the placeholder here, NOT the actual hostname
-      groups   = ["system:bootstrappers", "system:nodes"]
-    },
-    {
-      rolearn  = "arn:aws:iam::390403857216:role/service-role/codebuild-terraform-build-service-role"
-      username = "codebuild"
-      groups   = ["system:masters"]
-    }
-  ]
-
-  aws_auth_users = [
-    {
-      userarn  = "arn:aws:iam::390403857216:user/terraform-user"
-      username = "terraform-user"
-      groups   = ["system:masters"]
-    }
-  ]
 
   tags = {
     Environment = "demo"
     Project     = "CloudOps-Demo"
+  }
+}
+
+data "aws_eks_cluster" "cluster" {
+  name = module.eks.cluster_id
+}
+
+data "aws_eks_cluster_auth" "cluster" {
+  name = module.eks.cluster_id
+}
+
+provider "kubernetes" {
+  host                   = data.aws_eks_cluster.cluster.endpoint
+  cluster_ca_certificate = base64decode(data.aws_eks_cluster.cluster.certificate_authority[0].data)
+  token                  = data.aws_eks_cluster_auth.cluster.token
+}
+
+resource "kubernetes_config_map" "aws_auth" {
+  depends_on = [module.eks]
+
+  metadata {
+    name      = "aws-auth"
+    namespace = "kube-system"
+  }
+
+  data = {
+    mapRoles = yamlencode([
+      {
+        rolearn  = aws_iam_role.eks_node_group.arn
+        username = "system:node:{{EC2PrivateDNSName}}"
+        groups   = ["system:bootstrappers", "system:nodes"]
+      },
+      {
+        rolearn  = "arn:aws:iam::390403857216:role/service-role/codebuild-terraform-build-service-role"
+        username = "codebuild"
+        groups   = ["system:masters"]
+      }
+    ])
+
+    mapUsers = yamlencode([
+      {
+        userarn  = "arn:aws:iam::390403857216:user/terraform-user"
+        username = "terraform-user"
+        groups   = ["system:masters"]
+      }
+    ])
   }
 }
