@@ -307,7 +307,6 @@ resource "aws_db_instance" "this" {
   deletion_protection     = false
   backup_retention_period = 7
   backup_window           = "03:00-06:00"
-  maintenance_window      = "sun:00:00-sun:04:00"
 
   tags = {
     Name = var.db_instance_identifier
