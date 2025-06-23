@@ -10,6 +10,10 @@ phases:
       - unzip -o terraform_1.6.6_linux_amd64.zip
       - mv terraform /usr/local/bin/
       - terraform --version
+      - echo "Installing kubectl..."
+      - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+      - install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+      - kubectl version --client
 
   pre_build:
     commands:
@@ -18,6 +22,8 @@ phases:
 
   build:
     commands:
+      - echo "Setting up kubeconfig..."
+      - aws eks update-kubeconfig --name ${CLUSTER_NAME} --region ${AWS_REGION}
       - terraform validate
       - echo "Applying only EKS cluster first"
       - terraform apply -target=module.eks -auto-approve
