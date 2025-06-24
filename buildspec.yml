@@ -59,9 +59,9 @@ phases:
       - cp $K8S_MANIFEST_DIR/02-secrets.yaml k8s-out/secrets.yaml || true
 
       # --- INGRESS, HPA, NETWORK POLICY ---
-      - cp $K8S_MANIFEST_DIR/11-ingress.yaml k8s-out/ingress.yaml || true
-      - cp $K8S_MANIFEST_DIR/12-hpa.yaml k8s-out/hpa.yaml || true
-      - cp $K8S_MANIFEST_DIR/13-network-policy.yaml k8s-out/network-policy.yaml || true
+     # - cp $K8S_MANIFEST_DIR/11-ingress.yaml k8s-out/ingress.yaml || true
+     # - cp $K8S_MANIFEST_DIR/12-hpa.yaml k8s-out/hpa.yaml || true
+     # - cp $K8S_MANIFEST_DIR/13-network-policy.yaml k8s-out/network-policy.yaml || true
 
       # --- DEBUG ---
       - echo "Final list of generated Kubernetes YAML files:"
