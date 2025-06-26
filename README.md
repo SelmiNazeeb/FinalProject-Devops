@@ -19,7 +19,7 @@ FinalProject-Devops/
 ├── terraform_infra/            # terraform infrastructure
 └── cft.yaml                    # cloud formation infrastructure
 |__ buildspec.yaml              # cloud formation deploy
-|__ buildspec_Sonarqube.yaml    # tsonarqube integration      
+|__ buildspec_Sonarqube.yaml    # sonarqube integration      
 |__ buildspec_terraform.yaml    # terraform infrastructure build 
 |__ database/                   # posgresql database
 
