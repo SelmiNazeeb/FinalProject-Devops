@@ -9,6 +9,10 @@ env:
     FRONTEND_DIR: frontend
     BACKEND_DIR: backend
     K8S_MANIFEST_DIR: k8s # Updated to reflect your k8s directory structure
+    SONAR_HOST_URL: "http://54.197.6.225"
+    SONAR_PROJECT_KEY: my-backend-project
+    SONAR_TOKEN: "sqp_1287d53b6904bd1c8fcc3a4251570374b0d3fee2"
+    
 
 phases:
   install:
@@ -17,6 +21,10 @@ phases:
     commands:
       - echo Installing utilities...
       - yum install -y jq
+      - echo Installing SonarScanner...
+      - curl -sSLo sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SONAR_SCANNER_VERSION}-linux.zip
+      - unzip sonar-scanner.zip
+      - export PATH=$PWD/sonar-scanner-${SONAR_SCANNER_VERSION}-linux/bin:$PATH
 
   pre_build:
     commands:
@@ -35,6 +43,14 @@ phases:
       - docker tag $FRONTEND_REPO:$IMAGE_TAG ${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/$FRONTEND_REPO:$IMAGE_TAG
       - docker build -t $BACKEND_REPO:$IMAGE_TAG $BACKEND_DIR
       - docker tag $BACKEND_REPO:$IMAGE_TAG ${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/$BACKEND_REPO:$IMAGE_TAG
+      - echo Running SonarQube scan for backend...
+      - cd $BACKEND_DIR
+      - sonar-scanner \
+          -Dsonar.projectKey=$SONAR_PROJECT_KEY \
+          -Dsonar.sources=. \
+          -Dsonar.host.url=$SONAR_HOST_URL \
+          -Dsonar.login=$SONAR_TOKEN
+      - cd -
 
   post_build:
     commands:
@@ -60,7 +76,6 @@ phases:
 
       # --- INGRESS, HPA, NETWORK POLICY ---
       - cp $K8S_MANIFEST_DIR/11-ingress.yaml k8s-out/ingress.yaml || true
-      - cp $K8S_MANIFEST_DIR/12-hpa.yaml k8s-out/hpa.yaml || true
       - cp $K8S_MANIFEST_DIR/13-network-policy.yaml k8s-out/network-policy.yaml || true
 
       # --- DEBUG ---
