@@ -19,17 +19,17 @@ FinalProject-Devops/
 ├── terraform_infra/            # terraform infrastructure
 └── cft.yaml                    # cloud formation infrastructure
 |__ buildspec.yaml              # cloud formation deploy
-|__ buildspec-terradeploy.yaml  # terraform deploy      
-|__ terraform-buildspec.yaml    # terraform infrastructure build 
+|__ buildspec_Sonarqube.yaml    # tsonarqube integration      
+|__ buildspec_terraform.yaml    # terraform infrastructure build 
 |__ database/                   # posgresql database
 
 
 ## steps
 
-# 1. create infrastructure (cloud formation and terraform in 2 region)
-# 2. Build and Push Docker Images to ecr registry
-# 3. Applying manifest files
-# 4. Deploy to AWS EKS
-# 5. buy domain from route 53
-# 6. Route 53 for failover routing
-# 7. cloud watch monitoring
+### 1. create infrastructure (cloud formation and terraform in 2 region)
+### 2. Build and Push Docker Images to ecr registry
+### 3. Applying manifest files
+### 4. Deploy to AWS EKS
+### 5. buy domain from route 53
+### 6. Route 53 for failover routing
+### 7. cloud watch monitoring
